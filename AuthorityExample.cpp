@@ -9,7 +9,7 @@
 #include <cmath>
 #include <tuple>
 #include <string>
-#include <cstdio> // for setvbuf
+#include <cstdio>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -22,8 +22,6 @@ void EnableVTMode() {
     SetConsoleMode(hOut, dwMode);
 }
 #endif
-
-// ---------------- Constants ----------------
 const int GRID_SIZE = 11; // -5 to +5
 const int HISTORY_LIMIT = 50; // max number of actions to display
 
@@ -36,7 +34,6 @@ struct GameAction {
     GameAction() : dx(0), dy(0), dz(0), gx(0), gy(0), illegal(false) {}
 };
 
-// ---------------- Thread-safe queue ----------------
 template<typename T>
 class TSQueue {
     std::queue<T> q;
@@ -46,14 +43,13 @@ public:
     bool try_pop(T& out) { std::lock_guard<std::mutex> lock(mtx); if (q.empty()) return false; out = q.front(); q.pop(); return true; }
 };
 
-// ---------------- Random utility ----------------
 float getRandomFloat(float min, float max) {
     static thread_local std::mt19937 gen(std::random_device{}());
     std::uniform_real_distribution<float> dist(min, max);
     return dist(gen);
 }
 
-// ---------------- Shared resources ----------------
+// Shared resources
 TSQueue<GameAction> actionQueue;
 std::mutex stateMutex;
 std::map<int, std::tuple<float, float, float>> serverState;
@@ -62,7 +58,6 @@ std::vector<GameAction> actionHistory;
 std::map<int, int> penalties;
 bool done = false;
 
-// ---------------- Validation ----------------
 bool validateAction(GameAction& a) {
     float x = std::get<0>(serverState[a.clientID]);
     float y = std::get<1>(serverState[a.clientID]);
@@ -81,7 +76,6 @@ bool validateAction(GameAction& a) {
     return true;
 }
 
-// ---------------- ANSI colors ----------------
 const std::string RESET = "\033[0m";
 const std::string RED = "\033[31m";
 const std::string GREEN = "\033[32m";
@@ -90,7 +84,7 @@ const std::string MAGENTA = "\033[35m";
 const std::string CYAN = "\033[36m";
 const std::string GRAY = "\033[90m"; // oldest actions
 
-// ---------------- Server ----------------
+//Server
 void serverThread(const std::vector<int>& clientIDs, int latencyMs = 100) {
     std::cout << "\033[?25l"; // hide cursor
 
@@ -182,7 +176,7 @@ void serverThread(const std::vector<int>& clientIDs, int latencyMs = 100) {
     std::cout << "\033[?25h"; // show cursor
 }
 
-// ---------------- Client ----------------
+//Client
 void clientThread(int id, int latencyMs = 50) {
     serverState[id] = std::make_tuple(0.0f, 0.0f, 0.0f);
     clientPredicted[id] = std::make_tuple(0.0f, 0.0f, 0.0f);
@@ -211,7 +205,6 @@ void clientThread(int id, int latencyMs = 50) {
     }
 }
 
-// ---------------- Main ----------------
 int main() {
     // Disable buffering for live output
     setvbuf(stdout, nullptr, _IONBF, 0);
@@ -238,3 +231,4 @@ int main() {
     std::cout << "Simulation finished.\n";
     return 0;
 }
+
